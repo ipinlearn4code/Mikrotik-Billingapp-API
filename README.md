@@ -1,169 +1,201 @@
-MikroNet Billing API
-MikroNet Billing API is a RESTful API built with CodeIgniter 4 to manage client subscriptions, invoices, and payments for an internet provider. This API integrates with the MikroTik API for managing PPP Secrets, allowing easy administration of users, subscriptions, and billing.
+# MikroNet API - Client and Billing Management System
 
-Features
-Client Management: Create, update, delete, and retrieve client details.
-Subscription Management: Track client subscriptions with details about start/end dates and status.
-Invoice Management: Automatically generate invoices 4 days before the subscription end date.
-Payment Tracking: Monitor payment status, date, and method for each invoice.
-Integration with MikroTik API: Manage PPP Secrets directly from the billing app.
-Authorization: Uses token-based authentication for secure API access.
-Technologies Used
-CodeIgniter 4: PHP framework used for API development.
-MikroTik API: For PPP Secret management.
-MySQL: Database to store clients, subscriptions, invoices, and payment information.
-JWT (optional): Simple token-based authorization for securing endpoints.
-Getting Started
-Prerequisites
-PHP 7.4+
-Composer
-MySQL
-MikroTik Router (for PPP Secret management)
-Installation
-Clone the repository:
+## Table of Contents
+- [Introduction](#introduction)
+- [Features](#features)
+- [Project Structure](#project-structure)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [API Endpoints](#api-endpoints)
+  - [Authentication](#authentication)
+  - [Client Management](#client-management)
+  - [Subscription and Billing](#subscription-and-billing)
+- [Automatic Invoice Generation](#automatic-invoice-generation)
+- [Usage Example](#usage-example)
+- [Contributing](#contributing)
+- [License](#license)
 
-bash
-Salin kode
-git clone https://github.com/your-username/mikronet-billing-api.git
-cd mikronet-billing-api
-Install dependencies:
+---
 
-bash
-Salin kode
-composer install
-Copy the .env.example file to .env and configure your database settings:
+## Introduction
 
-bash
-Salin kode
-cp .env.example .env
-Migrate and seed the database:
+MikroNet API is a client and billing management system specifically designed for internet providers. It integrates with MikroTik APIs to manage client PPP secrets and includes billing functionalities. Invoices are generated automatically 4 days before the subscription end date, and payments can be tracked through the system.
 
-bash
-Salin kode
-php spark migrate
-Run the development server:
+## Features
 
-bash
-Salin kode
-php spark serve
-Set up a cron job for daily invoice generation (optional):
+- **Client Management**: Create, update, delete, and retrieve client information.
+- **Subscription Tracking**: Manage client subscriptions with start and end dates.
+- **Automatic Invoicing**: Generate invoices 4 days before the subscription end date.
+- **Payment Tracking**: Record and view payment history for each invoice.
+- **Integration with MikroTik API**: Enable or disable client access via MikroTik API based on PPP secret.
 
-bash
-Salin kode
-crontab -e
-Add the following line to run invoice generation at midnight daily:
+## Project Structure
 
-bash
-Salin kode
-0 0 * * * /usr/bin/php /path/to/your/project/spark billing:generate_invoices
-Configuration
-Update the MikroTik API configuration in app/Config/MikroTikConfig.php:
+```
+project/
+├── app/
+│   ├── Commands/
+│   │   └── GenerateInvoices.php      # CLI command to automate invoice creation
+│   ├── Config/
+│   │   └── MikroTikConfig.php        # MikroTik API configuration
+│   ├── Controllers/
+│   │   ├── AuthController.php        # Handles user authentication
+│   │   ├── ClientController.php      # Manages clients and client details
+│   │   └── InvoiceController.php     # Handles invoice-related operations
+│   ├── Models/
+│   │   ├── ClientModel.php           # Client data model
+│   │   ├── SubscriptionModel.php     # Subscription data model
+│   │   ├── InvoiceModel.php          # Invoice data model
+│   │   └── PaymentModel.php          # Payment data model
+└── README.md                         # Project documentation
+```
 
-php
-Salin kode
-public $apiUrl = 'http://your-mikrotik-api-server/ppp-secret';
-public $apiKey = 'your-mikrotik-api-key';
-API Endpoints
-Authentication
-Method	Endpoint	Description
-POST	/auth/register	Register a new user
-POST	/auth/login	Login and get a token
-POST	/auth/logout	Logout a user (optional)
-Client Management
-Method	Endpoint	Description
-GET	/client	Retrieve all clients
-GET	/client/{id}	Retrieve a specific client
-POST	/client/register	Register a new client
-PUT	/client/update/{id}	Update client details
-DELETE	/client/delete/{id}	Delete a client
-GET	/client/search?query=	Search clients by name, phone number, or PPP secret name
-Subscription and Invoice Management
-Method	Endpoint	Description
-GET	/client/{id}/details	Retrieve client details including subscriptions, invoices, and payments
-GET	/invoices/generate	Generate invoices for expiring subscriptions (usually set up as a cron job)
-Usage Examples
-Register a New Client
-http
-Salin kode
-POST /client/register
-Content-Type: application/json
+## Requirements
 
+- PHP 7.4 or higher
+- CodeIgniter 4.x
+- MySQL/MariaDB
+- Composer
+- MikroTik router with API enabled
+
+## Installation
+
+1. Clone this repository:
+   ```bash
+   git clone https://github.com/yourusername/mikronet-api.git
+   cd mikronet-api
+   ```
+
+2. Install dependencies:
+   ```bash
+   composer install
+   ```
+
+3. Set up environment variables:
+   - Copy `.env.example` to `.env` and update the database configuration.
+   - Configure the MikroTik API key and URL in `app/Config/MikroTikConfig.php`.
+
+4. Run migrations to create the necessary database tables:
+   ```bash
+   php spark migrate
+   ```
+
+## Configuration
+
+Configure MikroTik API access in `app/Config/MikroTikConfig.php`:
+
+```php
+<?php
+
+namespace App\Config;
+
+class MikroTikConfig
 {
-  "name": "John Doe",
-  "phone_number": "08123456789",
-  "address": "Jl. Merdeka No.1",
-  "ppp_secret_name": "abc123",
-  "password": "securepassword"
+    public $apiUrl = 'http://your-mikrotik-api-server';
+    public $apiKey = 'your-api-key';
 }
-Get Client Details with Nested Subscriptions, Invoices, and Payments
-http
-Salin kode
-GET /client/{id}/details
-Authorization: Bearer <your_token>
-Response:
+```
 
-json
-Salin kode
+## API Endpoints
+
+### Authentication
+
+- **Register**: `POST /auth/register`
+  - Registers a new user with a username and password.
+- **Login**: `POST /auth/login`
+  - Authenticates the user and returns a token for protected routes.
+- **Logout**: `POST /auth/logout`
+  - Logs out the user.
+
+### Client Management
+
+- **Get All Clients**: `GET /client`
+  - Retrieves a list of all clients.
+- **Get Client Details**: `GET /client/{id}/details`
+  - Retrieves details of a specific client, including subscriptions, invoices, and payments.
+- **Create Client**: `POST /client/register`
+  - Creates a new client and registers their PPP secret in MikroTik.
+- **Update Client**: `PUT /client/update/{id}`
+  - Updates a client's information.
+- **Delete Client**: `DELETE /client/delete/{id}`
+  - Deletes a client and removes their PPP secret in MikroTik.
+- **Toggle Client Status**: `POST /client/{id}/{enable|disable}`
+  - Enables or disables the client’s access on MikroTik by toggling their PPP secret.
+
+### Subscription and Billing
+
+- **Generate Invoices for Expiring Subscriptions**: `GET /invoices/generate`
+  - Manually triggers the invoice generation process for subscriptions ending in 4 days.
+  
+### Automatic Invoice Generation
+
+Invoices are automatically generated 4 days before the end of a subscription. To automate this, set up a cron job to run daily, triggering the `GenerateInvoices` command:
+
+```bash
+0 0 * * * /usr/bin/php /path/to/project/spark billing:generate_invoices
+```
+
+## Usage Example
+
+### Example JSON Responses
+
+#### Retrieve All Clients
+
+```json
 {
-    "data": {
-        "client": {
-            "client_id": 1,
-            "name": "John Doe",
-            "phone_number": "08123456789",
-            "address": "Jl. Merdeka No.1",
-            "ppp_secret_name": "abc123"
-        },
-        "subscriptions": [
-            {
-                "subscription_id": 1,
-                "start_date": "2024-01-01",
-                "end_date": "2024-12-31",
-                "status": "active",
-                "invoices": [
-                    {
-                        "invoice_id": 1,
-                        "invoice_date": "2024-01-01",
-                        "due_date": "2024-01-10",
-                        "total_amount": 100000.00,
-                        "invoice_status": "pending",
-                        "payments": [
-                            {
-                                "payment_status": "success",
-                                "payment_date": "2024-01-05",
-                                "payment_method": "credit_card"
-                            }
-                        ]
-                    }
-                ]
-            }
+  "message": "Clients retrieved successfully",
+  "data": [
+    {
+      "client_id": 1,
+      "name": "John Doe",
+      "phone_number": "08123456789",
+      "address": "Jl. Merdeka No.1",
+      "ppp_secret_name": "abc123"
+    },
+    ...
+  ]
+}
+```
+
+#### Retrieve Client Details
+
+```json
+{
+  "data": {
+    "client": {
+      "client_id": 1,
+      "name": "John Doe",
+      "phone_number": "08123456789",
+      "address": "Jl. Merdeka No.1",
+      "ppp_secret_name": "abc123"
+    },
+    "subscriptions": [
+      {
+        "subscription_id": 1,
+        "start_date": "2024-01-01",
+        "end_date": "2024-12-31",
+        "status": "active",
+        "invoices": [
+          {
+            "invoice_id": 1,
+            "invoice_date": "2024-01-01",
+            "due_date": "2024-01-10",
+            "total_amount": 100000.00,
+            "invoice_status": "pending",
+            "payments": [
+              {
+                "payment_status": "success",
+                "payment_date": "2024-01-05",
+                "payment_method": "credit_card"
+              }
+            ]
+          }
         ]
-    }
-}
-Search for a Client
-http
-Salin kode
-GET /client/search?query=john
-Authorization: Bearer <your_token>
-Response:
-
-json
-Salin kode
-{
-    "message": "Clients retrieved successfully",
-    "data": [
-        {
-            "client_id": "1",
-            "name": "John Doe",
-            "phone_number": "08123456789",
-            "address": "Jl. Merdeka No.1",
-            "ppp_secret_name": "abc123"
-        }
+      }
     ]
+  }
 }
-Additional Notes
-Automatic Invoice Generation: Invoices are generated automatically 4 days before a subscription’s end date. This feature can be run manually via the /invoices/generate endpoint or automated with a cron job.
-Token-Based Authentication: Authorization headers must be included with requests to protected endpoints. Tokens are base64 encoded but do not use JWT for simplicity.
-Future Enhancements
-Implement JWT for more secure token handling.
-Add roles and permissions for finer-grained access control.
-Enhance error handling and logging for better maintainability.
+```
+
+This README provides an organized and comprehensive overview of your project, covering all implemented features and setup instructions. You can expand on it as the project grows.
