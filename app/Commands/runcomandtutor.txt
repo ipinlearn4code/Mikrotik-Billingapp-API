@@ -1,0 +1,18 @@
+Option 1 : Run the Command Manually
+To test the command, you can run it directly in your terminal from your project root:
+
+    php spark billing:generate_invoices
+
+Option 2 : Set Up a Cron Job to Run the Command Daily  
+    Now that the CLI command is working, you can set up a cron job to run it daily:
+
+    Open the crontab file on your server:
+
+        crontab -e
+    
+    Add the following line to run the command daily at midnight:
+
+        0 0 * * * /usr/bin/php /path/to/your/codeigniter/project/spark billing:generate_invoices
+
+    Replace /path/to/your/codeigniter/project with the actual path to your project.
+    Make sure to use the correct path to PHP (/usr/bin/php), which may vary depending on your server configuration.

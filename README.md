@@ -1,68 +1,257 @@
-# CodeIgniter 4 Application Starter
 
-## What is CodeIgniter?
+## MikroNet API Documentation
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+Base URL: `http://your-api-server`
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+### 1. **Authentication Endpoints** (NOT USED YET/UNDONE)
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+#### **Admin Login**
 
-## Installation & updates
+- **Endpoint**: `POST /admin/login`
+- **Description**: Authenticates admin users and returns an access token if successful.
+- **Request Body**:
+  ```json
+  {
+    "username": "admin",
+    "password": "securepassword"
+  }
+  ```
+- **Response**:
+  - **Success**: Returns an access token.
+    ```json
+    {
+      "message": "Login successful",
+      "token": "your_access_token"
+    }
+    ```
+  - **Failure**: Authentication error.
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+#### **Admin Logout** (NOT USED YET/UNDONE)
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+- **Endpoint**: `POST /admin/logout`
+- **Description**: Invalidates the admin’s access token.
 
-## Setup
+---
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+### 2. **User Management Endpoints**
 
-## Important Change with index.php
+#### **Create New User**
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+- **Endpoint**: `POST /users/create`
+- **Description**: Creates a new user by interacting with both the database and the MikroTik API to create a PPP Secret.
+- **Request Body**:
+  ```json
+  {
+    "username": "john_doe",
+    "phone_number": "08123456789",
+    "address": "Jl. Merdeka No.1",
+    "ppp_secret_name": "john_secret",
+    "password": "securepassword"
+  }
+  ```
+- **Response**:
+  - **Success**: User created successfully.
+    ```json
+    {
+      "message": "User created successfully",
+      "data": {
+        "username": "john_doe",
+        "phone_number": "08123456789",
+        "address": "Jl. Merdeka No.1",
+        "ppp_secret_name": "john_secret"
+      }
+    }
+    ```
+  - **Failure**: Error creating the PPP Secret on MikroTik or database error.
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+#### **Get All Users**
 
-**Please** read the user guide for a better explanation of how CI4 works!
+- **Endpoint**: `GET /users`
+- **Description**: Retrieves a list of all users.
+- **Response**:
+  ```json
+  {
+    "data": [
+      {
+        "user_id": 1,
+        "username": "john_doe",
+        "phone_number": "08123456789",
+        "address": "Jl. Merdeka No.1",
+        "ppp_secret_name": "john_secret"
+      },
+      ...
+    ]
+  }
+  ```
 
-## Repository Management
+#### **Search Users**
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+- **Endpoint**: `GET /users/search?query={keyword}`
+- **Description**: Searches for users by keyword (in `username`, `email`, or `phone_number`).
+- **Response**:
+  ```json
+  {
+    "data": [
+      {
+        "user_id": 1,
+        "username": "john_doe",
+        "phone_number": "08123456789",
+        "address": "Jl. Merdeka No.1",
+        "ppp_secret_name": "john_secret"
+      },
+      ...
+    ]
+  }
+  ```
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+#### **Get User Details (with Subscriptions, Invoices, Payments)**
 
-## Server Requirements
+- **Endpoint**: `GET /users/{id}/details`
+- **Description**: Retrieves detailed user information, including associated subscriptions, invoices, and payments.
+- **Response**:
+  ```json
+  {
+    "data": {
+      "user": {
+        "user_id": 1,
+        "username": "john_doe",
+        "phone_number": "08123456789",
+        "address": "Jl. Merdeka No.1",
+        "ppp_secret_name": "john_secret"
+      },
+      "subscriptions": [
+        {
+          "subscription_id": 1,
+          "plan_id": 1,
+          "start_date": "2024-01-01",
+          "end_date": "2024-01-31",
+          "status": "active"
+        },
+        ...
+      ],
+      "invoices": [
+        {
+          "invoice_id": 1,
+          "subscription_id": 1,
+          "invoice_date": "2024-01-01",
+          "due_date": "2024-01-10",
+          "total_amount": 100000.00,
+          "invoice_status": "paid"
+        },
+        ...
+      ],
+      "payments": [
+        {
+          "payment_id": 1,
+          "subscription_id": 1,
+          "payment_date": "2024-01-05",
+          "amount": 100000.00,
+          "payment_method": "credit_card",
+          "payment_status": "success"
+        },
+        ...
+      ]
+    }
+  }
+  ```
 
-PHP version 8.1 or higher is required, with the following extensions installed:
+#### **Enable/Disable User by PPP Secret**
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+- **Endpoint**: `POST /users/{id}/status/{action}`
+  - `{action}` can be either `enable` or `disable`.
+- **Description**: Enables or disables a user’s PPP Secret on MikroTik.
+- **Response**:
+  - **Success**:
+    ```json
+    {
+      "message": "PPP Secret 'john_secret' enabled successfully."
+    }
+    ```
+  - **Failure**: Error enabling/disabling the PPP Secret.
 
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - If you are still using PHP 7.4 or 8.0, you should upgrade immediately.
-> - The end of life date for PHP 8.1 will be December 31, 2025.
+---
 
-Additionally, make sure that the following extensions are enabled in your PHP:
+### 3. **Subscription Management Endpoints**
 
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+#### **Get User Subscriptions**
+
+- **Endpoint**: `GET /users/{id}/subscriptions`
+- **Description**: Retrieves subscriptions associated with the specified user.
+- **Response**:
+  ```json
+  {
+    "data": [
+      {
+        "subscription_id": 1,
+        "plan_id": 1,
+        "start_date": "2024-01-01",
+        "end_date": "2024-01-31",
+        "status": "active"
+      },
+      ...
+    ]
+  }
+  ```
+
+---
+
+### 4. **Invoice Management Endpoints**
+
+#### **Get User Invoices**
+
+- **Endpoint**: `GET /users/{id}/invoices`
+- **Description**: Retrieves invoices associated with the specified user’s subscriptions.
+- **Response**:
+  ```json
+  {
+    "data": [
+      {
+        "invoice_id": 1,
+        "subscription_id": 1,
+        "invoice_date": "2024-01-01",
+        "due_date": "2024-01-10",
+        "total_amount": 100000.00,
+        "invoice_status": "paid"
+      },
+      ...
+    ]
+  }
+  ```
+
+---
+
+### 5. **Payment Management Endpoints**
+
+#### **Get User Payments**
+
+- **Endpoint**: `GET /users/{id}/payments`
+- **Description**: Retrieves payments associated with the specified user’s invoices.
+- **Response**:
+  ```json
+  {
+    "data": [
+      {
+        "payment_id": 1,
+        "subscription_id": 1,
+        "payment_date": "2024-01-05",
+        "amount": 100000.00,
+        "payment_method": "credit_card",
+        "payment_status": "success"
+      },
+      ...
+    ]
+  }
+  ```
+
+---
+
+## Summary
+
+The **MikroNet API** provides endpoints for managing users, subscriptions, invoices, and payments within a billing application context. The API interacts with both a billing database and a MikroTik router management API to create, enable, or disable PPP Secrets. Only admins can access this API, with authentication required for all endpoints.
+
+### Important Notes
+
+- **Admin Authentication**: Admins must be authenticated to access these endpoints.
+- **MikroTik Management API**: This API interacts with MikroTik’s PPP Secret management to enable or disable users based on `ppp_secret_name`.
+- **Data Handling**: All user-specific data, including subscriptions, invoices, and payments, is consolidated in a single endpoint for easy retrieval.

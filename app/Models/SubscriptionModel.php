@@ -7,5 +7,5 @@ class SubscriptionModel extends Model
 {
     protected $table = 'subscription';
     protected $primaryKey = 'subscription_id';
-    protected $allowedFields = ['user_id', 'plan_id', 'start_date', 'end_date', 'status'];
+    protected $allowedFields = ['client_id', 'plan_id', 'start_date', 'end_date', 'status'];
 }
