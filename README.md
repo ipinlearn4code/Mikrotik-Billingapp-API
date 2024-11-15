@@ -1,257 +1,169 @@
+MikroNet Billing API
+MikroNet Billing API is a RESTful API built with CodeIgniter 4 to manage client subscriptions, invoices, and payments for an internet provider. This API integrates with the MikroTik API for managing PPP Secrets, allowing easy administration of users, subscriptions, and billing.
 
-## MikroNet API Documentation
+Features
+Client Management: Create, update, delete, and retrieve client details.
+Subscription Management: Track client subscriptions with details about start/end dates and status.
+Invoice Management: Automatically generate invoices 4 days before the subscription end date.
+Payment Tracking: Monitor payment status, date, and method for each invoice.
+Integration with MikroTik API: Manage PPP Secrets directly from the billing app.
+Authorization: Uses token-based authentication for secure API access.
+Technologies Used
+CodeIgniter 4: PHP framework used for API development.
+MikroTik API: For PPP Secret management.
+MySQL: Database to store clients, subscriptions, invoices, and payment information.
+JWT (optional): Simple token-based authorization for securing endpoints.
+Getting Started
+Prerequisites
+PHP 7.4+
+Composer
+MySQL
+MikroTik Router (for PPP Secret management)
+Installation
+Clone the repository:
 
-Base URL: `http://your-api-server`
+bash
+Salin kode
+git clone https://github.com/your-username/mikronet-billing-api.git
+cd mikronet-billing-api
+Install dependencies:
 
+bash
+Salin kode
+composer install
+Copy the .env.example file to .env and configure your database settings:
 
-### 1. **Authentication Endpoints** (NOT USED YET/UNDONE)
+bash
+Salin kode
+cp .env.example .env
+Migrate and seed the database:
 
-#### **Admin Login**
+bash
+Salin kode
+php spark migrate
+Run the development server:
 
-- **Endpoint**: `POST /admin/login`
-- **Description**: Authenticates admin users and returns an access token if successful.
-- **Request Body**:
-  ```json
-  {
-    "username": "admin",
-    "password": "securepassword"
-  }
-  ```
-- **Response**:
-  - **Success**: Returns an access token.
-    ```json
-    {
-      "message": "Login successful",
-      "token": "your_access_token"
-    }
-    ```
-  - **Failure**: Authentication error.
+bash
+Salin kode
+php spark serve
+Set up a cron job for daily invoice generation (optional):
 
-#### **Admin Logout** (NOT USED YET/UNDONE)
+bash
+Salin kode
+crontab -e
+Add the following line to run invoice generation at midnight daily:
 
-- **Endpoint**: `POST /admin/logout`
-- **Description**: Invalidates the admin’s access token.
+bash
+Salin kode
+0 0 * * * /usr/bin/php /path/to/your/project/spark billing:generate_invoices
+Configuration
+Update the MikroTik API configuration in app/Config/MikroTikConfig.php:
 
----
+php
+Salin kode
+public $apiUrl = 'http://your-mikrotik-api-server/ppp-secret';
+public $apiKey = 'your-mikrotik-api-key';
+API Endpoints
+Authentication
+Method	Endpoint	Description
+POST	/auth/register	Register a new user
+POST	/auth/login	Login and get a token
+POST	/auth/logout	Logout a user (optional)
+Client Management
+Method	Endpoint	Description
+GET	/client	Retrieve all clients
+GET	/client/{id}	Retrieve a specific client
+POST	/client/register	Register a new client
+PUT	/client/update/{id}	Update client details
+DELETE	/client/delete/{id}	Delete a client
+GET	/client/search?query=	Search clients by name, phone number, or PPP secret name
+Subscription and Invoice Management
+Method	Endpoint	Description
+GET	/client/{id}/details	Retrieve client details including subscriptions, invoices, and payments
+GET	/invoices/generate	Generate invoices for expiring subscriptions (usually set up as a cron job)
+Usage Examples
+Register a New Client
+http
+Salin kode
+POST /client/register
+Content-Type: application/json
 
-### 2. **User Management Endpoints**
+{
+  "name": "John Doe",
+  "phone_number": "08123456789",
+  "address": "Jl. Merdeka No.1",
+  "ppp_secret_name": "abc123",
+  "password": "securepassword"
+}
+Get Client Details with Nested Subscriptions, Invoices, and Payments
+http
+Salin kode
+GET /client/{id}/details
+Authorization: Bearer <your_token>
+Response:
 
-#### **Create New User**
-
-- **Endpoint**: `POST /users/create`
-- **Description**: Creates a new user by interacting with both the database and the MikroTik API to create a PPP Secret.
-- **Request Body**:
-  ```json
-  {
-    "username": "john_doe",
-    "phone_number": "08123456789",
-    "address": "Jl. Merdeka No.1",
-    "ppp_secret_name": "john_secret",
-    "password": "securepassword"
-  }
-  ```
-- **Response**:
-  - **Success**: User created successfully.
-    ```json
-    {
-      "message": "User created successfully",
-      "data": {
-        "username": "john_doe",
-        "phone_number": "08123456789",
-        "address": "Jl. Merdeka No.1",
-        "ppp_secret_name": "john_secret"
-      }
-    }
-    ```
-  - **Failure**: Error creating the PPP Secret on MikroTik or database error.
-
-#### **Get All Users**
-
-- **Endpoint**: `GET /users`
-- **Description**: Retrieves a list of all users.
-- **Response**:
-  ```json
-  {
-    "data": [
-      {
-        "user_id": 1,
-        "username": "john_doe",
-        "phone_number": "08123456789",
-        "address": "Jl. Merdeka No.1",
-        "ppp_secret_name": "john_secret"
-      },
-      ...
-    ]
-  }
-  ```
-
-#### **Search Users**
-
-- **Endpoint**: `GET /users/search?query={keyword}`
-- **Description**: Searches for users by keyword (in `username`, `email`, or `phone_number`).
-- **Response**:
-  ```json
-  {
-    "data": [
-      {
-        "user_id": 1,
-        "username": "john_doe",
-        "phone_number": "08123456789",
-        "address": "Jl. Merdeka No.1",
-        "ppp_secret_name": "john_secret"
-      },
-      ...
-    ]
-  }
-  ```
-
-#### **Get User Details (with Subscriptions, Invoices, Payments)**
-
-- **Endpoint**: `GET /users/{id}/details`
-- **Description**: Retrieves detailed user information, including associated subscriptions, invoices, and payments.
-- **Response**:
-  ```json
-  {
+json
+Salin kode
+{
     "data": {
-      "user": {
-        "user_id": 1,
-        "username": "john_doe",
-        "phone_number": "08123456789",
-        "address": "Jl. Merdeka No.1",
-        "ppp_secret_name": "john_secret"
-      },
-      "subscriptions": [
-        {
-          "subscription_id": 1,
-          "plan_id": 1,
-          "start_date": "2024-01-01",
-          "end_date": "2024-01-31",
-          "status": "active"
+        "client": {
+            "client_id": 1,
+            "name": "John Doe",
+            "phone_number": "08123456789",
+            "address": "Jl. Merdeka No.1",
+            "ppp_secret_name": "abc123"
         },
-        ...
-      ],
-      "invoices": [
-        {
-          "invoice_id": 1,
-          "subscription_id": 1,
-          "invoice_date": "2024-01-01",
-          "due_date": "2024-01-10",
-          "total_amount": 100000.00,
-          "invoice_status": "paid"
-        },
-        ...
-      ],
-      "payments": [
-        {
-          "payment_id": 1,
-          "subscription_id": 1,
-          "payment_date": "2024-01-05",
-          "amount": 100000.00,
-          "payment_method": "credit_card",
-          "payment_status": "success"
-        },
-        ...
-      ]
+        "subscriptions": [
+            {
+                "subscription_id": 1,
+                "start_date": "2024-01-01",
+                "end_date": "2024-12-31",
+                "status": "active",
+                "invoices": [
+                    {
+                        "invoice_id": 1,
+                        "invoice_date": "2024-01-01",
+                        "due_date": "2024-01-10",
+                        "total_amount": 100000.00,
+                        "invoice_status": "pending",
+                        "payments": [
+                            {
+                                "payment_status": "success",
+                                "payment_date": "2024-01-05",
+                                "payment_method": "credit_card"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
     }
-  }
-  ```
+}
+Search for a Client
+http
+Salin kode
+GET /client/search?query=john
+Authorization: Bearer <your_token>
+Response:
 
-#### **Enable/Disable User by PPP Secret**
-
-- **Endpoint**: `POST /users/{id}/status/{action}`
-  - `{action}` can be either `enable` or `disable`.
-- **Description**: Enables or disables a user’s PPP Secret on MikroTik.
-- **Response**:
-  - **Success**:
-    ```json
-    {
-      "message": "PPP Secret 'john_secret' enabled successfully."
-    }
-    ```
-  - **Failure**: Error enabling/disabling the PPP Secret.
-
----
-
-### 3. **Subscription Management Endpoints**
-
-#### **Get User Subscriptions**
-
-- **Endpoint**: `GET /users/{id}/subscriptions`
-- **Description**: Retrieves subscriptions associated with the specified user.
-- **Response**:
-  ```json
-  {
+json
+Salin kode
+{
+    "message": "Clients retrieved successfully",
     "data": [
-      {
-        "subscription_id": 1,
-        "plan_id": 1,
-        "start_date": "2024-01-01",
-        "end_date": "2024-01-31",
-        "status": "active"
-      },
-      ...
+        {
+            "client_id": "1",
+            "name": "John Doe",
+            "phone_number": "08123456789",
+            "address": "Jl. Merdeka No.1",
+            "ppp_secret_name": "abc123"
+        }
     ]
-  }
-  ```
-
----
-
-### 4. **Invoice Management Endpoints**
-
-#### **Get User Invoices**
-
-- **Endpoint**: `GET /users/{id}/invoices`
-- **Description**: Retrieves invoices associated with the specified user’s subscriptions.
-- **Response**:
-  ```json
-  {
-    "data": [
-      {
-        "invoice_id": 1,
-        "subscription_id": 1,
-        "invoice_date": "2024-01-01",
-        "due_date": "2024-01-10",
-        "total_amount": 100000.00,
-        "invoice_status": "paid"
-      },
-      ...
-    ]
-  }
-  ```
-
----
-
-### 5. **Payment Management Endpoints**
-
-#### **Get User Payments**
-
-- **Endpoint**: `GET /users/{id}/payments`
-- **Description**: Retrieves payments associated with the specified user’s invoices.
-- **Response**:
-  ```json
-  {
-    "data": [
-      {
-        "payment_id": 1,
-        "subscription_id": 1,
-        "payment_date": "2024-01-05",
-        "amount": 100000.00,
-        "payment_method": "credit_card",
-        "payment_status": "success"
-      },
-      ...
-    ]
-  }
-  ```
-
----
-
-## Summary
-
-The **MikroNet API** provides endpoints for managing users, subscriptions, invoices, and payments within a billing application context. The API interacts with both a billing database and a MikroTik router management API to create, enable, or disable PPP Secrets. Only admins can access this API, with authentication required for all endpoints.
-
-### Important Notes
-
-- **Admin Authentication**: Admins must be authenticated to access these endpoints.
-- **MikroTik Management API**: This API interacts with MikroTik’s PPP Secret management to enable or disable users based on `ppp_secret_name`.
-- **Data Handling**: All user-specific data, including subscriptions, invoices, and payments, is consolidated in a single endpoint for easy retrieval.
+}
+Additional Notes
+Automatic Invoice Generation: Invoices are generated automatically 4 days before a subscription’s end date. This feature can be run manually via the /invoices/generate endpoint or automated with a cron job.
+Token-Based Authentication: Authorization headers must be included with requests to protected endpoints. Tokens are base64 encoded but do not use JWT for simplicity.
+Future Enhancements
+Implement JWT for more secure token handling.
+Add roles and permissions for finer-grained access control.
+Enhance error handling and logging for better maintainability.
