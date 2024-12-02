@@ -22,7 +22,6 @@ class ClientController extends ResourceController
         $this->clientModel = new ClientModel();
         $this->subscriptionModel = new SubscriptionModel();
         $this->invoiceModel = new InvoiceModel();
-        $this->paymentModel = new PaymentModel();
         $this->mikrotikConfig = new MikroTikConfig();
     }
 
@@ -67,37 +66,14 @@ class ClientController extends ResourceController
 
         $subscriptionData = [];
         foreach ($subscriptions as $subscription) {
-            $invoices = $this->invoiceModel->where('subscription_id', $subscription['subscription_id'])->findAll();
-
-            $invoiceData = [];
-            foreach ($invoices as $invoice) {
-                $payments = $this->paymentModel->where('subscription_id', $subscription['subscription_id'])->findAll();
-
-                $paymentData = [];
-                foreach ($payments as $payment) {
-                    $paymentData[] = [
-                        'payment_status' => $payment['payment_status'],
-                        'payment_date' => $payment['payment_date'],
-                        'payment_method' => $payment['payment_method']
-                    ];
-                }
-
-                $invoiceData[] = [
-                    'invoice_id' => $invoice['invoice_id'],
-                    'invoice_date' => $invoice['invoice_date'],
-                    'due_date' => $invoice['due_date'],
-                    'total_amount' => $invoice['total_amount'],
-                    'invoice_status' => $invoice['invoice_status'],
-                    'payments' => $paymentData
-                ];
-            }
+            
 
             $subscriptionData[] = [
                 'subscription_id' => $subscription['subscription_id'],
                 'start_date' => $subscription['start_date'],
                 'end_date' => $subscription['end_date'],
                 'status' => $subscription['status'],
-                'invoices' => $invoiceData
+                
             ];
         }
 
