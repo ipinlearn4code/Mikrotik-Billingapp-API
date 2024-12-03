@@ -31,13 +31,13 @@ class InvoiceController extends ResourceController
         // Prepare the response data with subscription details
         $invoiceData = [
             'invoice_id' => $invoice['invoice_id'],
+            'subscription_id' => $invoice['subscription_id'],  // Subscription info included
             'invoice_date' => $invoice['invoice_date'],
             'due_date' => $invoice['due_date'],
             'total_amount' => $invoice['total_amount'],
             'invoice_status' => $invoice['invoice_status'],
             'payment_method' => $invoice['payment_method'],
             'payment_date' => $invoice['payment_date'],
-            'subscription_id' => $invoice['subscription_id'],  // Subscription info included
         ];
 
         return $this->respond(['data' => $invoiceData]);
@@ -122,7 +122,16 @@ class InvoiceController extends ResourceController
             $diffInDays = $dateDifference->days; // Get the number of days difference
 
             // Check if the subscription's end date is within 2 days
-            if ($diffInDays <= 2) {
+            if ($diffInDays <= 5) {
+                // Fetch the plan details using plan_id from subscription
+                $planModel = model('App\Models\PlanModel');
+                $plan = $planModel->find($subscription['plan_id']);
+
+                // Ensure the plan exists
+                if (!$plan) {
+                    return $this->failNotFound("Plan with ID {$subscription['plan_id']} not found");
+                }
+
                 // Check if an invoice already exists for this subscription
                 $existingInvoice = $this->model->where('subscription_id', $subscription['subscription_id'])->first();
 
@@ -132,7 +141,7 @@ class InvoiceController extends ResourceController
                         'subscription_id' => $subscription['subscription_id'],
                         'invoice_date' => $currentDate->toDateString(),  // Today's date
                         'due_date' => $currentDate->addDays(2)->toDateString(),  // Due date in 2 days
-                        'total_amount' => $subscription['price'],  // Assuming price is the total amount
+                        'total_amount' => $plan['price'],  // Get price from the associated plan
                         'invoice_status' => 'pending',  // Default status
                     ];
 
@@ -146,15 +155,68 @@ class InvoiceController extends ResourceController
             }
         }
 
-        // Return the response
+        $this->refreshInvoiceStatus();
+
+        // Return response based on invoice creation status
         if (count($createdInvoices) > 0) {
             return $this->respond([
-                'message' => 'Invoices generated successfully for subscriptions with end dates within 2 days.',
+                'message' => 'Invoices generated successfully for subscriptions with end dates within 5 days.',
                 'data' => $createdInvoices
             ]);
         } else {
             return $this->respond([
-                'message' => 'No invoices were generated. All subscriptions have end dates more than 2 days away or invoices already exist.',
+                'message' => 'No invoices were generated. All subscriptions have end dates more than 5 days away or invoices already exist.',
+                'data' => []
+            ]);
+        }
+    }
+
+    private function refreshInvoiceStatus()
+    {
+        // Get the current date and time
+        $currentDate = new Time('now');
+
+        // Retrieve all active subscriptions
+        $subscriptionModel = new SubscriptionModel();
+        $subscriptions = $subscriptionModel->where('status', 'active')->findAll();
+
+        $updatedInvoices = [];
+
+        foreach ($subscriptions as $subscription) {
+            // Convert subscription end date to a Time object
+            $endDate = new Time($subscription['end_date']);
+
+            // Check if the subscription has ended
+            if ($endDate <= $currentDate) {
+                // Fetch the invoice for this subscription
+                $invoice = $this->model->where('subscription_id', $subscription['subscription_id'])->first();
+
+                // Check if an invoice exists and if its status is 'pending'
+                if ($invoice && $invoice['invoice_status'] === 'pending') {
+                    // Update the invoice status to 'expired' or any other status
+                    $invoiceData = [
+                        'invoice_status' => 'overdue',  // Change status to expired or overdue
+                    ];
+
+                    // Update the invoice in the database
+                    if ($this->model->update($invoice['invoice_id'], $invoiceData)) {
+                        $updatedInvoices[] = $invoiceData;
+                    } else {
+                        return $this->failServerError("Error updating invoice for subscription ID {$subscription['subscription_id']}");
+                    }
+                }
+            }
+        }
+
+        // Return response based on whether any invoices were updated
+        if (count($updatedInvoices) > 0) {
+            return $this->respond([
+                'message' => 'Invoice statuses updated successfully.',
+                'data' => $updatedInvoices
+            ]);
+        } else {
+            return $this->respond([
+                'message' => 'No invoices were updated. All invoices either have a non-pending status or subscriptions are still active.',
                 'data' => []
             ]);
         }

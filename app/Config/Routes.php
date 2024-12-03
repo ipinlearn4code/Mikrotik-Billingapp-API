@@ -49,7 +49,8 @@ $routes->group(
     function ($routes) {
         $routes->get('/', 'InvoiceController::index');
         $routes->get('(:num)', 'InvoiceController::show/$1');
-        $routes->get('auto-generate', 'InvoiceController::generateAutoInvoices');
+        $routes->get('/', 'InvoiceController::refreshInvoices/$1');
+        $routes->get('auto', 'InvoiceController::generateAutoInvoices');
         $routes->post('/', 'InvoiceController::create'); //create
         $routes->put('(:num)', 'InvoiceController::update/$1');
         $routes->delete('delete/(:num)', 'InvoiceController::delete/$1');

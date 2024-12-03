@@ -42,49 +42,24 @@ class SubscriptionController extends ResourceController
         // Fetch plan details using plan_id from the subscription
         $plan = model('App\Models\PlanModel')->find($subscription['plan_id']);
 
-        // Fetch invoices related to the current subscription
-        $invoices = model('App\Models\InvoiceModel')->where('subscription_id', $id)->findAll();
+        // Fetch the single invoice related to the current subscription
+        $invoice = model('App\Models\InvoiceModel')->where('subscription_id', $id)->first(); // Only fetch the first invoice
 
-        // Prepare invoice data with nested payments
-        $invoiceData = [];
-        foreach ($invoices as $invoice) {
-            // Fetch payments related to the current invoice
-            $payments = model('App\Models\PaymentModel')->where('invoice_id', $invoice['invoice_id'])->findAll();
-
-            // Format payment data
-            $paymentData = [];
-            foreach ($payments as $payment) {
-                $paymentData[] = [
-                    'payment_status' => $payment['payment_status'],
-                    'payment_date' => $payment['payment_date'],
-                    'payment_method' => $payment['payment_method']
-                ];
-            }
-
-            // Append the invoice with nested payments
-            $invoiceData[] = [
-                'invoice_id' => $invoice['invoice_id'],
-                'invoice_date' => $invoice['invoice_date'],
-                'due_date' => $invoice['due_date'],
-                'total_amount' => $invoice['total_amount'],
-                'invoice_status' => $invoice['invoice_status'],
-                'payments' => $paymentData
-            ];
-        }
-
-        // Structure the final response with subscription, plan, invoices, and payments
+        // Prepare the subscription details
         $subscriptionDetails = [
             'subscription' => $subscription,
+            'invoice_id' => $invoice ? $invoice['invoice_id'] : null,  // Check if invoice exists, then return invoice_id
             'plan' => [
                 'plan_id' => $plan['plan_id'],
                 'plan_name' => $plan['plan_name'],
                 'price' => $plan['price'],
             ],
-            'invoices' => $invoiceData,
         ];
 
         return $this->respond(['data' => $subscriptionDetails]);
     }
+
+
 
 
 
