@@ -14,24 +14,91 @@ class InvoiceController extends ResourceController
     protected $format = 'json';
 
     // Get all invoices
+    // public function index()
+    // {
+    //     $invoices = $this->model->findAll();
+    //     return $this->respond(['data' => $invoices]);
+    // }
+
     public function index()
     {
+        // Ambil semua invoice
         $invoices = $this->model->findAll();
-        return $this->respond(['data' => $invoices]);
+
+        $invoiceData = [];
+        foreach ($invoices as $invoice) {
+            // Ambil data subscription berdasarkan subscription_id
+            $subscription = model('App\Models\SubscriptionModel')->find($invoice['subscription_id']);
+            if (!$subscription) {
+                continue; // Skip jika subscription tidak ditemukan
+            }
+
+            // Ambil data klien berdasarkan client_id dari subscription
+            $client = model('App\Models\ClientModel')->find($subscription['client_id']);
+            $clientName = $client ? $client['name'] : null;
+
+            // Siapkan data invoice dengan nama klien
+            $invoiceData[] = [
+                'invoice_id' => $invoice['invoice_id'],
+                'client_name' => $clientName,  // Ganti subscription_id dengan nama klien
+                'invoice_date' => $invoice['invoice_date'],
+                'due_date' => $invoice['due_date'],
+                'total_amount' => $invoice['total_amount'],
+                'invoice_status' => $invoice['invoice_status'],
+                'payment_method' => $invoice['payment_method'],
+                'payment_date' => $invoice['payment_date'],
+            ];
+        }
+
+        return $this->respond(['data' => $invoiceData]);
     }
 
+
     // Get an invoice by ID
+    // public function show($id = null)
+    // {
+    //     $invoice = $this->model->find($id);
+    //     if (!$invoice) {
+    //         return $this->failNotFound("Invoice with ID $id not found");
+    //     }
+
+    //     // Prepare the response data with subscription details
+    //     $invoiceData = [
+    //         'invoice_id' => $invoice['invoice_id'],
+    //         'subscription_id' => $invoice['subscription_id'],  // Subscription info included
+    //         'invoice_date' => $invoice['invoice_date'],
+    //         'due_date' => $invoice['due_date'],
+    //         'total_amount' => $invoice['total_amount'],
+    //         'invoice_status' => $invoice['invoice_status'],
+    //         'payment_method' => $invoice['payment_method'],
+    //         'payment_date' => $invoice['payment_date'],
+    //     ];
+
+    //     return $this->respond(['data' => $invoiceData]);
+    // }
+
     public function show($id = null)
     {
+        // Ambil invoice berdasarkan ID
         $invoice = $this->model->find($id);
         if (!$invoice) {
             return $this->failNotFound("Invoice with ID $id not found");
         }
 
-        // Prepare the response data with subscription details
+        // Ambil subscription terkait berdasarkan subscription_id
+        $subscription = model('App\Models\SubscriptionModel')->find($invoice['subscription_id']);
+        if (!$subscription) {
+            return $this->failNotFound("Subscription with ID {$invoice['subscription_id']} not found");
+        }
+
+        // Ambil data klien berdasarkan client_id dari subscription
+        $client = model('App\Models\ClientModel')->find($subscription['client_id']);
+        $clientName = $client ? $client['name'] : null;
+
+        // Siapkan data invoice dengan nama klien
         $invoiceData = [
             'invoice_id' => $invoice['invoice_id'],
-            'subscription_id' => $invoice['subscription_id'],  // Subscription info included
+            'client_name' => $clientName,  // Ganti subscription_id dengan nama klien
             'invoice_date' => $invoice['invoice_date'],
             'due_date' => $invoice['due_date'],
             'total_amount' => $invoice['total_amount'],
@@ -42,6 +109,7 @@ class InvoiceController extends ResourceController
 
         return $this->respond(['data' => $invoiceData]);
     }
+
 
     // Create a new invoice
     public function create()

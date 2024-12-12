@@ -63,8 +63,8 @@ $routes->group(
     ['filter' => 'tokenAuth'],
     function ($routes) {
         $routes->get('/', 'PlanController::index'); //Read all
-        $routes->get('(:num)/details', 'PlanController::getPlanDetails/$1'); //Read one
-        $routes->post('/', 'PlanController::createPlan'); //Create
+        $routes->get('(:num)', 'PlanController::show/$1'); //Read one
+        $routes->post('/', 'PlanController::create'); //Create
         $routes->put('(:num)', 'PlanController::update/$1'); //Update
         $routes->delete('(:num)', 'PlanController::delete/$1'); //Delete
     }
